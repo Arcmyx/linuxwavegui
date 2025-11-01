@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>App Launcher</title>
+  </head>
+  <body>
+    <h1>Launch an App</h1>
+    <input type="text" id="bpm" placeholder="Enter desired bpm" />
+    <button onclick="sendCustomCommand()">Run Linuxwave</button>
+    <script>
+      document.querySelectorAll("button[data-launch]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const command = button.getAttribute("data-launch");
+          window.api.launchApp(command);
+        });
+      });
+      const pitchDownSemis = (newRate, baseRate) =>
+        12 * Math.log2(newRate / baseRate);
+      function sendCustomCommand() {
+        const sampleRate = (document.getElementById("bpm").value / 144) * 24000;
+        const pitch = -100 * pitchDownSemis(sampleRate, 24000);
+        console.log(sampleRate);
+        const command = `linuxwave -r ${sampleRate} && sox output.wav -r 44100 output2.wav pitch ${pitch}`;
+        if (command.trim()) {
+          window.api.launchApp(command);
+        }
+      }
+    </script>
+  </body>
+</html>

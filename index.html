@@ -10,14 +10,12 @@
     You can install them with <pre>sudo apt install sox</pre>, and for linuxwave you can either compile it from source or download a precompiled binary from the releases section of the GitHub page. <br>
     After that, you can use the buttons below to launch linuxwave with various options of your choice! <br>
 
-    As a side note, if you want to get the MIDI of the audio, you can use <pre>sudo apt install python3-basic-pitch</pre> to install basic-pitch, an MP3 to MIDI converter. Then the app will take care of the rest for you! <br>
-    basic-pitch is powered by machine learning, so the results may not be perfect.
-    You must have Python 3 installed for it to work. <br>
-
     IMPORTANT NOTE: This app only works on Linux systems as linuxwave and sox are Linux-only tools.<br>
     </p>
-    <input type="text" id="bpm" placeholder="Enter desired bpm" />
-    <button onclick="sendCustomCommand()">Run Linuxwave</button>
+    <input type="text" id="bpm" placeholder="Enter desired BPM" />
+    <input type="text" id="key" placeholder="Enter desired key. C4 is 0, C#4 is 1, B3 is -1, etc." />
+    <button onclick="sendCustomCommand()">Generate</button>
+    <p id="status"></p>
     <script>
       document.querySelectorAll("button[data-launch]").forEach((button) => {
         button.addEventListener("click", () => {
@@ -29,13 +27,21 @@
         12 * Math.log2(newRate / baseRate);
       function sendCustomCommand() {
         const sampleRate = (document.getElementById("bpm").value / 144) * 24000;
-        const pitch = -100 * pitchDownSemis(sampleRate, 24000);
-        console.log(sampleRate);
-        const command = `linuxwave -r ${sampleRate} && sox output.wav -r 44100 output2.wav pitch ${pitch} && rm output.wav && mv output2.wav output.wav`;
+        const pitchError = -100 * pitchDownSemis(sampleRate, 24000);
+        const key = document.getElementById("key").value;
+        const command = `linuxwave -r ${sampleRate} && sox output.wav -r 44100 output2.wav pitch ${pitchError + key * 100} && rm output.wav && mv output2.wav output.wav && node createMidi.js`;
         if (command.trim()) {
+          document.getElementById("status").textContent = "Generating...";
           window.api.launchApp(command);
+          document.getElementById("status").textContent ="Generation command sent!";
+        }
+        if (window.api && window.api.onCommandComplete) {
+          window.api.onCommandComplete(() => {
+            document.getElementById("status").textContent = "Completed! output.wav and output.mid have been successfully generated.";
+          });
         }
       }
+      
     </script>
   </body>
 </html>

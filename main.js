@@ -24,5 +24,7 @@ ipcMain.on("launch-app", (event, command) => {
     } else {
       console.log(`Launched ${command}: ${stdout}`);
     }
+    // Notify renderer process that command is complete
+    event.sender.send("command-complete");
   });
 });

@@ -11,6 +11,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "electron": "^39.0.0"
+    "@tensorflow/tfjs-node": "^4.22.0",
+    "@tonejs/midi": "^2.0.28",
+    "electron": "^39.0.0",
+    "pitchfinder": "^2.3.2",
+    "wav-decoder": "^1.3.0"
   }
 }

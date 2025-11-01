@@ -8,7 +8,13 @@
     <p> This is my attempt at making a GUI for linuxwave. Linuxwave is a commmand-line tool to generate music from bytes of various files, the default being /dev/urandom. The GitHub page for it is at <a href="https://github.com/orhun/linuxwave/">https://github.com/orhun/linuxwave/</a>. <br>
     To use this you simply need to have linuxwave and sox installed on your system and have this app running. <br>
     You can install them with <pre>sudo apt install sox</pre>, and for linuxwave you can either compile it from source or download a precompiled binary from the releases section of the GitHub page. <br>
-    After that, you can use the buttons below to launch linuxwave with various options of your choice!
+    After that, you can use the buttons below to launch linuxwave with various options of your choice! <br>
+
+    As a side note, if you want to get the MIDI of the audio, you can use <pre>sudo apt install python3-basic-pitch</pre> to install basic-pitch, an MP3 to MIDI converter. Then the app will take care of the rest for you! <br>
+    basic-pitch is powered by machine learning, so the results may not be perfect.
+    You must have Python 3 installed for it to work. <br>
+
+    IMPORTANT NOTE: This app only works on Linux systems as linuxwave and sox are Linux-only tools.<br>
     </p>
     <input type="text" id="bpm" placeholder="Enter desired bpm" />
     <button onclick="sendCustomCommand()">Run Linuxwave</button>

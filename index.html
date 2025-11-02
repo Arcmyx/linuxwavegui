@@ -14,6 +14,7 @@
     </p>
     <input type="text" id="bpm" placeholder="Enter desired BPM" />
     <input type="text" id="key" placeholder="Enter desired key. C4 is 0, C#4 is 1, B3 is -1, etc." />
+    <input type="text" id="duration" placeholder="Enter desired duration in bars, assuming 4/4." />
     <button onclick="sendCustomCommand()">Generate</button>
     <p id="status"></p>
     <script>
@@ -29,7 +30,8 @@
         const sampleRate = (document.getElementById("bpm").value / 144) * 24000;
         const pitchError = -100 * pitchDownSemis(sampleRate, 24000);
         const key = document.getElementById("key").value;
-        const command = `linuxwave -r ${sampleRate} && sox output.wav -r 44100 output2.wav pitch ${pitchError + key * 100} && rm output.wav && mv output2.wav output.wav && node createMidi.js`;
+        const duration = document.getElementById("duration").value;
+        const command = `linuxwave -r ${sampleRate} && sox output.wav -r 44100 output2.wav pitch ${pitchError + key * 100} tempo 2.0 && rm output.wav && mv output2.wav output.wav && node createMidi.js`;
         if (command.trim()) {
           document.getElementById("status").textContent = "Generating...";
           window.api.launchApp(command);

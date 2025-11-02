@@ -16,30 +16,73 @@
     <input type="text" id="key" placeholder="Enter desired key. C4 is 0, C#4 is 1, B3 is -1, etc." />
     <input type="text" id="duration" placeholder="Enter desired duration in bars, assuming 4/4." />
     <button onclick="sendCustomCommand()">Generate</button>
+    <audio id="drum-audio" src="output_with_drums.wav" controls style="display:block; margin-top:10px;"></audio>
+    <button onclick="restartDrumAudio()">Restart & Play</button>
     <p id="status"></p>
     <script>
+      const puns = [
+        "Why did the pianist keep banging his head? He was playing by ear.",
+        "What's a skeleton's favorite instrument? The trom-bone.",
+        "Why did the note go to jail? It got caught in a sharp situation.",
+        "How do you fix a broken tuba? With a tuba glue.",
+        "Why was the guitar teacher arrested? For fingering a minor.",
+        "Why did the drummer bring a ladder? To reach the high notes.",
+        "What's a music producer's favorite type of fish? Bass.",
+        "Why did the singer climb a scale? To hit the high notes.",
+        "What's Beethoven's favorite fruit? Ba-na-na-naaa!",
+        "Why don't DJs ever get lost? They always follow the beat."
+      ];
+
+
       document.querySelectorAll("button[data-launch]").forEach((button) => {
         button.addEventListener("click", () => {
           const command = button.getAttribute("data-launch");
           window.api.launchApp(command);
         });
       });
+      function restartDrumAudio() {
+        const audio = document.getElementById('drum-audio');
+        if (audio) {
+          audio.currentTime = 0;
+          audio.play();
+        }
+      }
       const pitchDownSemis = (newRate, baseRate) =>
         12 * Math.log2(newRate / baseRate);
       function sendCustomCommand() {
         const sampleRate = (document.getElementById("bpm").value / 144) * 24000;
+        const bpm = document.getElementById("bpm").value;
         const pitchError = -100 * pitchDownSemis(sampleRate, 24000);
         const key = document.getElementById("key").value;
-        const duration = document.getElementById("duration").value;
-        const command = `linuxwave -r ${sampleRate} && sox output.wav -r 44100 output2.wav pitch ${pitchError + key * 100} tempo 2.0 && rm output.wav && mv output2.wav output.wav && node createMidi.js`;
+        const bars = document.getElementById("duration").value;
+        const duration = (document.getElementById("duration").value) * 4 * (60 / bpm);
+        console.log("Duration (secs): " + duration);
+        //duration = 20;
+        const command = `linuxwave -r ${sampleRate} -d ${Math.ceil(duration * 2)} \
+        && sox output.wav -r 44100 output2.wav pitch ${pitchError + key * 100} tempo 2.0 \
+        && rm output.wav && mv output2.wav output.wav \
+        && node createMidi.js \
+        && node drumseq.js ${bpm} ${duration} 1 \
+        && sox rockbeat.wav -r 44100 rockbeat_44100.wav \
+        && mv rockbeat_44100.wav rockbeat.wav \
+        && sox -m output.wav rockbeat.wav output_with_drums.wav \
+        && rm rockbeat.wav `;
+        console.log(command);
         if (command.trim()) {
-          document.getElementById("status").textContent = "Generating...";
+          document.getElementById("status").textContent = "Sending generation command...";
           window.api.launchApp(command);
-          document.getElementById("status").textContent ="Generation command sent!";
+          const pun = puns[Math.floor(Math.random() * puns.length)];
+          document.getElementById("status").textContent =
+            `Generation command sent! Your song is generating... Here's a pun while you wait: ${pun}`;
         }
         if (window.api && window.api.onCommandComplete) {
           window.api.onCommandComplete(() => {
             document.getElementById("status").textContent = "Completed! output.wav and output.mid have been successfully generated.";
+            // Auto-play the audio when done
+            const audio = document.getElementById('drum-audio');
+            audio.stop();
+            audio.load();
+            audio.play();
           });
         }
       }

@@ -6,10 +6,13 @@ const utils = require("audio-buffer-utils");
 
 const sampleRate = 44100;
 const bpm = parseFloat(process.argv[2]) || 120; // Default to 120 if no arg
+const totalDuration = parseFloat(process.argv[3]) || 4; // Default to 4 seconds if not provided
+const addClap = parseInt(process.argv[4]) === 1;
 const steps = 16;
 const beatDuration = 60 / bpm;
 const stepDuration = beatDuration / 4;
 console.log(`Step duration: ${stepDuration}s`);
+console.log(`Total duration: ${totalDuration}s`);
 async function loadSample(filePath) {
   const file = fs.readFileSync(filePath); // sync read is simplest
   const decoded = await wav.decode(file);
@@ -28,20 +31,30 @@ async function loadSample(filePath) {
     sampleRate: decoded.sampleRate,
   });
   buffer.getChannelData(0).set(mono);
-  console.log("Loaded sample rate:", decoded.sampleRate);
   return buffer;
 }
 
 (async () => {
   try {
-    const kick = await loadSample("kick.wav");
-    const snare = await loadSample("snare.wav");
-    const hihat = await loadSample("hihat.wav");
+    const kick = await loadSample("assets/kick.wav");
+    const snare = await loadSample("assets/snare.wav");
+    const hihat = await loadSample("assets/hihat.wav");
+    let clap = null;
+    if (addClap) {
+      clap = await loadSample("assets/clap.wav");
+    }
 
     const loopLength = stepDuration * steps;
-
     const maxSampleLength = Math.max(kick.length, snare.length, hihat.length);
-    const outputLength = Math.ceil(loopLength * sampleRate + maxSampleLength);
+    const singleLoopLength = Math.ceil(
+      loopLength * sampleRate + maxSampleLength
+    );
+
+    // Calculate how many times to repeat the loop
+    const numRepeats = Math.ceil(totalDuration / loopLength);
+    const outputLength = Math.ceil(
+      totalDuration * sampleRate + maxSampleLength
+    );
 
     const output = new AudioBuffer({
       numberOfChannels: 1,
@@ -52,9 +65,7 @@ async function loadSample(filePath) {
     function mixSample(output, sample, offset) {
       const outData = output.getChannelData(0);
       const inData = sample.getChannelData(0);
-      console.log(
-        `Mixing sample of length ${inData.length} at offset ${offset}`
-      );
+      // ...existing code...
       for (let j = 0; j < inData.length; j++) {
         if (offset + j < outData.length) {
           outData[offset + j] += inData[j];
@@ -62,20 +73,31 @@ async function loadSample(filePath) {
       }
     }
 
-    for (let i = 0; i < steps; i++) {
-      const time = i * stepDuration;
-      const offset = Math.floor(time * sampleRate);
+    // Render and mix the loop multiple times
+    for (let repeat = 0; repeat < numRepeats; repeat++) {
+      const loopOffset = Math.floor(repeat * loopLength * sampleRate);
+      let kickCount = 0;
+      for (let i = 0; i < steps; i++) {
+        const time = i * stepDuration;
+        const offset = loopOffset + Math.floor(time * sampleRate);
 
-      if (i % 2 === 0) mixSample(output, hihat, offset);
-      if (i % 16 === 0 || i % 16 === 8) mixSample(output, kick, offset);
-      if (i % 16 === 4 || i % 16 === 12) mixSample(output, snare, offset);
-      console.log(`Step ${i}, offset ${offset}`);
+        if (i % 2 === 0) mixSample(output, hihat, offset);
+        // Kicks on i == 0 and i == 8
+        if (i % 16 === 0 || i % 16 === 8) {
+          kickCount++;
+          mixSample(output, kick, offset);
+          // Add claps before and after every even kick
+          if (addClap && kickCount % 2 === 0 && clap) {
+            const clapBefore = offset - Math.floor(stepDuration * sampleRate);
+            const clapAfter = offset + Math.floor(stepDuration * sampleRate);
+            if (clapBefore >= 0) mixSample(output, clap, clapBefore);
+            if (clapAfter < output.length) mixSample(output, clap, clapAfter);
+          }
+        }
+        if (i % 16 === 4 || i % 16 === 12) mixSample(output, snare, offset);
+      }
     }
     utils.normalize(output);
-
-    console.log("Output length (samples):", output.length);
-    console.log("Step duration (s):", stepDuration);
-    console.log("Max sample length (samples):", maxSampleLength);
 
     const encoded = await encodeWav({
       sampleRate,
@@ -83,7 +105,7 @@ async function loadSample(filePath) {
     });
 
     fs.writeFileSync("rockbeat.wav", Buffer.from(encoded));
-    console.log("✅ Rock beat written to rockbeat.wav");
+    console.log("Rock beat written to rockbeat.wav");
   } catch (err) {
     console.error("Error creating drum sequence:", err);
   }

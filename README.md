@@ -46,7 +46,7 @@ A simple Electron-based GUI for [linuxwave](https://github.com/orhun/linuxwave),
 
 ## License
 
-MIT
+GPLv3
 
 ---
 
